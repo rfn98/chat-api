@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CHAT REALTIME</title>
+</head>
+<body>
+	<div id="app">
+		<li v-for="item in listChat">{{item.text}}</li>
+	</div>
+	<input type="text" class="message">
+	<button onclick="sendChat()">Send Chat</button>
+	<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+	<script type="text/javascript">
+		let base_url = 'http://localhost:4545/'
+		const vue = new Vue({
+	          el: '#app',
+	          data: {
+	            listChat: []
+	        },
+	        async mounted() {
+	        	const data = await $.ajax({url: base_url + 'get-chats'})
+	        	this.listChat = data
+	        }
+	    })
+		const message = document.querySelector('.message')
+		const btn = document.querySelector('button')
+		let ws
+		const sendMessage = msg => {
+			// document.querySelector('#chat').textContent += `\n\n${msg}`
+			message.value = ''
+		}
+
+		function init() {
+			if (ws) {
+				ws.onerror = ws.onopen = ws.onclose = null
+				ws.close()
+			}
+
+			ws = new WebSocket('ws://localhost:4545')
+			ws.onopen = () => console.log('connection open')
+			ws.onmessage = async ({data}) => {
+				console.log(data)
+				vue.listChat = JSON.parse(data)
+				/*const data = await $.ajax({url: base_url + 'get-chats'})
+	        	vue.listChat = data*/
+			}
+			ws.onclose = function() {
+				ws = null
+			}
+		}
+		const sendChat = () => {
+			if (!ws) {
+				sendMessage('No WebSocket connection')
+				return
+			}
+
+			ws.send(message.value)
+			sendMessage(message.value)
+		}
+		message.addEventListener('keyup', function (e) {
+			if (e.keyCode == 13) sendChat()
+		})
+		init()
+	</script>
+</body>
+</html>
